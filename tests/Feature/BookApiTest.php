@@ -200,4 +200,58 @@ class BookApiTest extends TestCase
     {
         $this->deleteJson('/books/999999')->assertNotFound();
     }
+
+    public function test_it_accepts_a_title_with_exactly_three_characters(): void
+    {
+        $category = Category::factory()->create();
+
+        $this->postJson('/books', [
+            'title' => 'Dos',
+            'author' => 'Autor',
+            'published_year' => 2000,
+            'category_id' => $category->id,
+        ])->assertCreated();
+    }
+
+    public function test_it_accepts_the_published_year_boundaries(): void
+    {
+        $category = Category::factory()->create();
+
+        $this->postJson('/books', [
+            'title' => 'Libro antiguo',
+            'author' => 'Autor',
+            'published_year' => 1000,
+            'category_id' => $category->id,
+        ])->assertCreated();
+
+        $this->postJson('/books', [
+            'title' => 'Libro actual',
+            'author' => 'Autor',
+            'published_year' => now()->year,
+            'category_id' => $category->id,
+        ])->assertCreated();
+    }
+
+    public function test_it_creates_a_book_without_description(): void
+    {
+        $category = Category::factory()->create();
+
+        $this->postJson('/books', [
+            'title' => 'Libro sin sinopsis',
+            'author' => 'Autor',
+            'published_year' => 2020,
+            'category_id' => $category->id,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.description', null);
+    }
+
+    public function test_not_found_responses_are_json_even_without_the_accept_header(): void
+    {
+        $response = $this->get('/books/999999');
+
+        $response->assertNotFound()
+            ->assertHeader('Content-Type', 'application/json')
+            ->assertJsonPath('message', 'El recurso solicitado no existe.');
+    }
 }
